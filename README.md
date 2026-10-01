@@ -13,6 +13,7 @@ where files actually live.
 | add to the end of a file | `files.Appender` → `AppendFile(path, data) error` |
 | delete a file | `files.Remover` → `RemoveFile(path) error` (`files.ErrNotExist` when missing) |
 | both read and write | `files.ReadWriter` |
+| read, write, append and remove | `files.Store` |
 | know that a file is missing | `err == files.ErrNotExist` (never wrapped) |
 | test without touching disk | `mem.New()` from `webtyp.com/files/mem` |
 | prove my implementation is correct | `conformance.Run(t, conformance.Factory{...})` from `webtyp.com/files/conformance` |

@@ -37,6 +37,14 @@ type ReadWriter interface {
 	Writer
 }
 
+// Store is a complete file store: it reads, writes, appends and removes. A consumer that keeps
+// large downloads (webtyp/artifacts) asks for it; webtyp/opfs and files/mem implement it.
+type Store interface {
+	ReadWriter
+	Appender
+	Remover
+}
+
 // ErrNotExist is what ReadFile returns when the file does not exist.
 var ErrNotExist error = notExist{}
 

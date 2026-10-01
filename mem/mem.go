@@ -26,6 +26,7 @@ var (
 	_ files.ReadWriter = (*Files)(nil)
 	_ files.Appender   = (*Files)(nil)
 	_ files.Remover    = (*Files)(nil)
+	_ files.Store      = (*Files)(nil)
 )
 
 func (f *Files) find(path string) int {
