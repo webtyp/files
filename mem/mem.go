@@ -25,6 +25,7 @@ func New() *Files { return &Files{} }
 var (
 	_ files.ReadWriter = (*Files)(nil)
 	_ files.Appender   = (*Files)(nil)
+	_ files.Remover    = (*Files)(nil)
 )
 
 func (f *Files) find(path string) int {
@@ -69,5 +70,17 @@ func (f *Files) AppendFile(path string, data []byte) error {
 		return nil
 	}
 	f.entries = append(f.entries, entry{path: path, data: append([]byte(nil), data...)})
+	return nil
+}
+
+// RemoveFile deletes the file at path, or returns files.ErrNotExist.
+func (f *Files) RemoveFile(path string) error {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	i := f.find(path)
+	if i < 0 {
+		return files.ErrNotExist
+	}
+	f.entries = append(f.entries[:i], f.entries[i+1:]...)
 	return nil
 }

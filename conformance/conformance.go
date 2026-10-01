@@ -14,8 +14,8 @@ type Factory struct {
 	New  func(t *testing.T) files.ReadWriter
 }
 
-// Run runs the ReadWriter suite and, when the implementation also is a files.Appender, the
-// append suite.
+// Run runs the ReadWriter suite and, for each optional interface the implementation also
+// satisfies (files.Appender, files.Remover), that interface's suite.
 func Run(t *testing.T, f Factory) {
 	if f.New == nil {
 		t.Fatal("conformance: Factory.New is required")
@@ -63,9 +63,15 @@ func Run(t *testing.T, f Factory) {
 		got[0] = 'Y'
 		expect(t, rw, "a", "abc")
 	})
-	if _, ok := f.New(t).(files.Appender); !ok {
-		return
+	if _, ok := f.New(t).(files.Appender); ok {
+		runAppender(t, f)
 	}
+	if _, ok := f.New(t).(files.Remover); ok {
+		runRemover(t, f)
+	}
+}
+
+func runAppender(t *testing.T, f Factory) {
 	t.Run("append_creates", func(t *testing.T) {
 		rw := f.New(t)
 		if err := rw.(files.Appender).AppendFile("log", []byte("one")); err != nil {
@@ -80,6 +86,42 @@ func Run(t *testing.T, f Factory) {
 			t.Fatal(err)
 		}
 		expect(t, rw, "log", "one,two")
+	})
+}
+
+func runRemover(t *testing.T, f Factory) {
+	t.Run("remove_then_read_is_ErrNotExist", func(t *testing.T) {
+		rw := f.New(t)
+		mustWrite(t, rw, "a", "A")
+		if err := rw.(files.Remover).RemoveFile("a"); err != nil {
+			t.Fatalf("RemoveFile(a): %v", err)
+		}
+		if _, err := rw.ReadFile("a"); err != files.ErrNotExist {
+			t.Fatalf("ReadFile(removed) error = %v, want files.ErrNotExist (unwrapped)", err)
+		}
+	})
+	t.Run("remove_missing_is_ErrNotExist", func(t *testing.T) {
+		if err := f.New(t).(files.Remover).RemoveFile("missing.bin"); err != files.ErrNotExist {
+			t.Fatalf("RemoveFile(missing) error = %v, want files.ErrNotExist (unwrapped)", err)
+		}
+	})
+	t.Run("remove_leaves_other_paths", func(t *testing.T) {
+		rw := f.New(t)
+		mustWrite(t, rw, "a", "A")
+		mustWrite(t, rw, "b", "B")
+		if err := rw.(files.Remover).RemoveFile("a"); err != nil {
+			t.Fatal(err)
+		}
+		expect(t, rw, "b", "B")
+	})
+	t.Run("write_after_remove", func(t *testing.T) {
+		rw := f.New(t)
+		mustWrite(t, rw, "a", "old")
+		if err := rw.(files.Remover).RemoveFile("a"); err != nil {
+			t.Fatal(err)
+		}
+		mustWrite(t, rw, "a", "new")
+		expect(t, rw, "a", "new")
 	})
 }
 
